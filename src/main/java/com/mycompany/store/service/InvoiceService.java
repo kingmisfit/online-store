@@ -1,11 +1,15 @@
 package com.mycompany.store.service;
 
 import com.mycompany.store.domain.Invoice;
+import com.mycompany.store.repository.AuthorityRepository;
 import com.mycompany.store.repository.InvoiceRepository;
+import com.mycompany.store.security.AuthoritiesConstants;
+import com.mycompany.store.security.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +49,14 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public Page<Invoice> findAll(Pageable pageable) {
         log.debug("Request to get all Invoices");
-        return invoiceRepository.findAll(pageable);
+        if (SecurityUtils.isCurrentUserInRole(AuthoritiesConstants.ADMIN)) {
+            return invoiceRepository.findAll(pageable);
+        } else {
+            return invoiceRepository.findAllByOrderCustomerUserLogin(
+                SecurityUtils.getCurrentUserLogin().get(), pageable
+            );
+        }
+
     }
 
     /**
@@ -57,7 +68,14 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public Invoice findOne(Long id) {
         log.debug("Request to get Invoice : {}", id);
-        return invoiceRepository.findOne(id);
+
+        if (SecurityUtils.isCurrentUserInRole(AuthoritiesConstants.ADMIN)) {
+            return invoiceRepository.findOne(id);
+        } else {
+            return invoiceRepository.findOneByIdAndOrderCustomerUserLogin(
+                id, SecurityUtils.getCurrentUserLogin().get()
+            );
+        }
     }
 
     /**
